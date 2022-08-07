@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import { v4 as uuid } from "uuid";
 
 import connection from "../dbStrategy/postgres.js";
 
@@ -15,4 +16,26 @@ export async function signUp(req, res) {
     }
 }
 
+export async function signIn(req, res) {
+    const { email, password } = req.body;
 
+    try {
+        const { rows: verifyExistingUser } = await connection.query("SELECT * FROM users WHERE email = $1", [email]);
+        const verifyPassword = bcrypt.compareSync(password, verifyExistingUser[0].password);
+        if (verifyExistingUser && verifyPassword) {
+            const token = uuid();
+
+            await connection.query(`INSERT INTO sessions ("userId", token) VALUES ($1, $2)`, [verifyExistingUser[0].id, token]);
+
+            res.status(200).send(token);
+            return;
+        }
+        else {
+            res.status(401).send("Incorrect e-mail or password.");
+            return;
+        }
+    }
+    catch (error) {
+        res.status(500).send(error);
+    }
+}
