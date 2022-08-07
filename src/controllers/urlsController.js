@@ -63,3 +63,31 @@ export async function redirectToUrl(req, res) {
         res.status(500).send(error);
     }
 }
+
+export async function deleteUrl(req, res) {
+    const { id } = req.params;
+    const { userId } = res.locals.verifyValidToken;
+
+
+    try {
+        const result = await connection.query("SELECT * FROM urls WHERE id = $1", [id]);
+
+        if (result.rowCount === 0) {
+            res.status(404).send("There is no URL with that ID.");
+            return;
+        }
+
+        const url = result.rows[0];
+
+        if (url.creatorId !== userId) {
+            res.status(401).send("The shorten URL does not belong to this user.");
+            return;
+        }
+
+        await connection.query("DELETE FROM urls WHERE id = $1;", [id]);
+        res.status(204).send("The shorten URL was deleted successfully.");
+    }
+    catch (error) {
+        res.status(500).send(error);
+    }
+}
