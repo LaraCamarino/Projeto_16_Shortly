@@ -7,6 +7,7 @@ export default async function validateSignIn(req, res, next) {
         email: joi.string().email().required(),
         password: joi.string().required()
     });
+    
     const validation = userSchema.validate(user, { abortEarly: false });
     if (validation.error) {
         res.status(422).send(validation.error.details);
