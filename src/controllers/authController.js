@@ -21,17 +21,23 @@ export async function signIn(req, res) {
 
     try {
         const { rows: verifyExistingUser } = await connection.query("SELECT * FROM users WHERE email = $1", [email]);
+        if(verifyExistingUser.length === 0) {
+            res.status(401).send("Incorrect e-mail or password.");
+            return;
+        }
+
         const verifyPassword = bcrypt.compareSync(password, verifyExistingUser[0].password);
+        if(!verifyPassword) {
+            res.status(401).send("Incorrect e-mail or password.");
+            return;
+        }
+               
         if (verifyExistingUser && verifyPassword) {
             const token = uuid();
 
             await connection.query(`INSERT INTO sessions ("userId", token) VALUES ($1, $2)`, [verifyExistingUser[0].id, token]);
 
             res.status(200).send(token);
-            return;
-        }
-        else {
-            res.status(401).send("Incorrect e-mail or password.");
             return;
         }
     }
