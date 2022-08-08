@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 
-import connection from "../dbStrategy/postgres.js";
+import { urlsRepository } from '../repositories/urlsRepository.js';
 
 export async function shortenUrl(req, res) {
     const { url } = req.body;
@@ -8,7 +8,7 @@ export async function shortenUrl(req, res) {
     const shortUrl = nanoid(8);
 
     try {
-        await connection.query(`INSERT INTO urls (url, "shortUrl", "creatorId") VALUES ($1, $2, $3)`, [url, shortUrl, userId]);
+        await urlsRepository.shortenUrl(url, shortUrl, userId);
 
         res.status(201).send({ shortUrl });
     }
@@ -21,7 +21,7 @@ export async function getUrlById(req, res) {
     const { id } = req.params;
 
     try {
-        const result = await connection.query("SELECT * FROM urls WHERE id = $1", [id]);
+        const result = await urlsRepository.getUrlById(id);
 
         if (result.rowCount === 0) {
             res.status(404).send("There is no URL with that ID.");
@@ -45,7 +45,7 @@ export async function redirectToUrl(req, res) {
     const { shortUrl } = req.params;
 
     try {
-        const result = await connection.query(`SELECT * FROM urls WHERE "shortUrl" = $1`, [shortUrl]);
+        const result = await urlsRepository.verifyUrlByShortUrl(shortUrl);
 
         if (result.rowCount === 0) {
             res.status(404).send("URL not found.");
@@ -55,7 +55,7 @@ export async function redirectToUrl(req, res) {
         const url = result.rows[0];
         const newVisitCount = url.visitCount + 1;
 
-        await connection.query(`UPDATE urls SET "visitCount" = $1 WHERE id = $2`, [newVisitCount, url.id]);
+        await urlsRepository.updateUrlVisitCount(newVisitCount, url.id);
 
         res.redirect(url.url);
     }
@@ -70,7 +70,7 @@ export async function deleteUrl(req, res) {
 
 
     try {
-        const result = await connection.query("SELECT * FROM urls WHERE id = $1", [id]);
+        const result = await urlsRepository.verifyUrlById(id);
 
         if (result.rowCount === 0) {
             res.status(404).send("There is no URL with that ID.");
@@ -84,7 +84,7 @@ export async function deleteUrl(req, res) {
             return;
         }
 
-        await connection.query("DELETE FROM urls WHERE id = $1;", [id]);
+        await urlsRepository.deleteUrl(id);
         res.status(204).send("The shorten URL was deleted successfully.");
     }
     catch (error) {
